@@ -1,1 +1,0 @@
-# thesis_semantic_seg_salsanext
