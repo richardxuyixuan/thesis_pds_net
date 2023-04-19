@@ -13,6 +13,21 @@ from pip._vendor.distlib.compat import raw_input
 
 from tasks.semantic.modules.SalsaNextAdf import *
 from tasks.semantic.modules.SalsaNext import *
+from tasks.semantic.modules.SalsaNextInterpolate import *
+from tasks.semantic.modules.SalsaNextCompletion import *
+from tasks.semantic.modules.SalsaNextCompletionSingleDecoder import *
+from tasks.semantic.modules.SalsaNextCompletionSingleDecoderStageTwo import *
+from tasks.semantic.modules.SalsaNextCompletionStageTwo import *
+from tasks.semantic.modules.pncnn import *
+from tasks.semantic.modules.SalsaNextCompletionStageTwoFilteredWeights import *
+from tasks.semantic.modules.SalsaNextCompletionAttention import *
+from tasks.semantic.modules.SalsaNextCompletionSingleDecoderMaskPredictionHead import *
+from tasks.semantic.modules.SalsaNextCompletionSingleDecoderStageTwoPerceptionLoss import *
+from tasks.semantic.modules.SalsaNextCompletionSingleDecoderStageTwoEndToEnd import *
+from tasks.semantic.modules.SalsaNextCompletionSingleDecoderMaskPredictionHeadStageTwo import *
+
+
+
 #from tasks.semantic.modules.save_dataset_projected import *
 import math
 from decimal import Decimal
@@ -81,7 +96,7 @@ if __name__ == '__main__':
         '--pretrained', '-p',
         type=str,
         required=False,
-        default=None,
+        default="",
         help='Directory to get the pretrained model. If not passed, do from scratch!'
     )
     parser.add_argument(
@@ -91,10 +106,179 @@ if __name__ == '__main__':
         help='Set this if you want to use the Uncertainty Version'
     )
 
+    parser.add_argument(
+        '--completion', '-c',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--completion_single_decoder', '-cs',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--completion_single_decoder_stage_two', '-cs2',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--completion_stage_two', '-c2',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--completion_stage_two_filtered', '-c2f',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--pncnn', '-pncnn',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--pncnn_stage_two', '-pncnn2',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--ipbasic', '-ipbasic',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--bilateral_filtering', '-bf',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--interpolate', '-int',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--attn', '-attn',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Completion Version'
+    )
+
+    parser.add_argument(
+        '--full_res', '-fr',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Full Resolution Version'
+    )
+
+    parser.add_argument(
+        '--edge_loss', '-el',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Full Resolution Version'
+    )
+
+    parser.add_argument(
+        '--completion_single_decoder_mask_prediction', '-csmp',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Full Resolution Version'
+    )
+
+    parser.add_argument(
+        '--completion_single_decoder_mask_prediction_stage_two', '-csmp2',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Full Resolution Version'
+    )
+
+    parser.add_argument(
+        '--perception_loss', '-pl',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Full Resolution Version'
+    )
+
+    parser.add_argument(
+        '--completion_single_decoder_stage_two_perception_loss', '-cs2pl',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Full Resolution Version'
+    )
+
+    parser.add_argument(
+        '--oracle', '-ora',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Oracle Version (trained on nuscenes and inferred on nuscenes)'
+    )
+
+    parser.add_argument(
+        '--completion_single_decoder_end_to_end', '-csete',
+        type=str2bool, nargs='?',
+        const=True, default=False,
+        help='Set this if you want to use the Oracle Version (trained on nuscenes and inferred on nuscenes)'
+    )
+
     FLAGS, unparsed = parser.parse_known_args()
     FLAGS.log = FLAGS.log + '/logs/' + datetime.datetime.now().strftime("%Y-%-m-%d-%H:%M") + FLAGS.name
     if FLAGS.uncertainty:
         params = SalsaNextUncertainty(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion:
+        params = SalsaNextCompletion(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.attn:
+        params = SalsaNextCompletionAttention(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_single_decoder:
+        params = SalsaNextCompletionSingleDecoder(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_single_decoder_mask_prediction:
+        params = SalsaNextCompletionSingleDecoderMaskPredictionHead(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_single_decoder_stage_two_perception_loss:
+        params = SalsaNextCompletionSingleDecoderStageTwoPerceptionLoss(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_single_decoder_stage_two:
+        params = SalsaNextCompletionSingleDecoderStageTwo(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_stage_two:
+        params = SalsaNextCompletionStageTwo(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_stage_two_filtered:
+        params = SalsaNextCompletionStageTwoFilteredWeights(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.pncnn:
+        params = PNCNN(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.interpolate:
+        params = SalsaNextInterpolate(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_single_decoder_end_to_end:
+        params = SalsaNextCompletionSingleDecoderStageTwoEndToEnd(20)
+        pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
+    elif FLAGS.completion_single_decoder_mask_prediction_stage_two:
+        params = SalsaNextCompletionSingleDecoderMaskPredictionHeadStageTwo(20)
         pytorch_total_params = sum(p.numel() for p in params.parameters() if p.requires_grad)
     else:
         params = SalsaNext(20)
@@ -173,5 +357,19 @@ if __name__ == '__main__':
         quit()
 
     # create trainer and start the training
-    trainer = Trainer(ARCH, DATA, FLAGS.dataset, FLAGS.log, FLAGS.pretrained,FLAGS.uncertainty)
+    trainer = Trainer(ARCH, DATA, FLAGS.dataset, FLAGS.log, FLAGS.pretrained,FLAGS.uncertainty,FLAGS.completion,FLAGS.completion_single_decoder, FLAGS.completion_single_decoder_stage_two, FLAGS.completion_stage_two,
+                      FLAGS.pncnn,
+                      FLAGS.pncnn_stage_two,
+                      FLAGS.ipbasic,
+                      FLAGS.bilateral_filtering,
+                      FLAGS.interpolate,
+                      FLAGS.completion_stage_two_filtered,
+                      FLAGS.attn,
+                      FLAGS.full_res,
+                      FLAGS.edge_loss,
+                      FLAGS.completion_single_decoder_mask_prediction,
+                      FLAGS.completion_single_decoder_stage_two_perception_loss,
+                      FLAGS.oracle,
+                      FLAGS.completion_single_decoder_end_to_end,
+                      FLAGS.completion_single_decoder_mask_prediction_stage_two)
     trainer.train()
